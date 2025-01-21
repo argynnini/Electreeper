@@ -4,7 +4,7 @@ from PID import PID as simplePID
 from machine import Pin, ADC, PWM, UART
 import logging
 from utime import sleep
-from time import time, ticks_ms
+from time import ticks_ms
 import _thread
 
 
@@ -178,6 +178,7 @@ class CTA:
     # ---- Control function ----
     # Control CTA on/off function
     def control(self, resistance, pwm, threshold=0.2, timeout=10.0):
+        global initial_time
         if resistance > self.__relax:
             resistance = self.__relax
             # logger.warning("Resistance is over " + str(self.__relax) + " Ohm")
@@ -192,12 +193,13 @@ class CTA:
         ):
             # get BMF resistance
             # cta_resistance = self.get_bmf_resistance()
-            print(
-                "Control: {:3d}, Resistance: {:2.3f}, Setpoint: {:2.2f}, PWM: {:3d}, Time: {:2.3f}".format(
-                    pwm, self.__cta_resistance, resistance, pwm, ((ticks_ms() - start_time) / 1000)
-                ),
-                end="\r",
-            )
+            print(f"{ticks_ms() - initial_time},{resistance},{self.__cta_resistance},{pwm},{(ticks_ms() - start_time) / 1000}")
+            # print(
+            #     "Control: {:3d}, Resistance: {:2.3f}, Setpoint: {:2.2f}, PWM: {:3d}, Time: {:2.3f}".format(
+            #         pwm, self.__cta_resistance, resistance, pwm, ((ticks_ms() - start_time) / 1000)
+            #     ),
+            #     end="\r",
+            # )
 
     # control CTA pid function
     def control_pid(self, resistance, threshold=0.2, timeout=10.0):
@@ -255,26 +257,30 @@ def core1(cta):
     led_blue.value(False)  # LED blue on
     log_core1.info("Start PWM control")
     cta.init_pwm(freq=PWMFREQ, pwm_duty_min=PWMMIN, pwm_duty_max=PWMMAX)
-    try:
-        while True:
-            print("\n", end="\r")
-            log_cta1.info("shrink")
-            change_color(RED)
-            cta.control(pwm=PWMMAX, resistance=BMF1SHRINK, threshold=0.15, timeout=5)
-            print("\n", end="\r")
-            log_cta1.info("relax")
-            change_color(BLUE)
-            cta.control(pwm=PWMMIN, resistance=BMF1RELAX, threshold=0.3, timeout=5)
-    except KeyboardInterrupt:
-        cta.end_pwm()
+    global initial_time
+    initial_time = ticks_ms()
+    # try:
+    while True:
         print("\n", end="\r")
-        log_core1.info("End PWM control")
-        led_blue.value(True)  # LED blue off
-        _thread.exit()
+        log_cta1.info("shrink")
+        change_color(RED)
+        cta.control(pwm=PWMMAX, resistance=BMF1SHRINK, threshold=0.15, timeout=5)
+        print("\n", end="\r")
+        log_cta1.info("relax")
+        change_color(BLUE)
+        cta.control(pwm=PWMMIN, resistance=BMF1RELAX, threshold=0.3, timeout=5)
+    # except KeyboardInterrupt:
+    #     cta.end_pwm()
+    #     print("\n", end="\r")
+    #     log_core1.info("End PWM control")
+    #     led_blue.value(True)  # LED blue off
+    #     _thread.exit()
 
 
 
 # ---- Main ----
+change_color(WHITE)
+sleep(3)
 log_electreeper.info("Start")
 led_green.value(False)  # LED red on
 change_color(GREEN)
@@ -298,6 +304,7 @@ core0(cta1)  # Start core1
 # End
 sleep(0.25)
 cta1.end_pid()
+cta1.end_pwm()
 # change_color(BLACK)
 led_red.value(True)
 led_green.value(True)

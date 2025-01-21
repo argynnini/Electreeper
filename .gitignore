@@ -3,6 +3,6 @@
 
 # Ignore .micropico file
 *.micropico
-
+*.csv
 # Ignore all .json file
 *.json
