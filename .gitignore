@@ -4,5 +4,6 @@
 # Ignore .micropico file
 *.micropico
 *.csv
+.*lock.*
 # Ignore all .json file
 *.json
