@@ -286,9 +286,9 @@ led_green.value(False)  # LED red on
 change_color(GREEN)
 # Initialize CTA1
 cta1 = CTA(
-    pwm_pin=PWM0,
-    adc_pin=ADC0,
-    adc_gain=GAIN0,
+    pwm_pin=PWM1,
+    adc_pin=ADC1,
+    adc_gain=GAIN1,
     crd_current=CCRD,
     bmf_relax=BMF1RELAX,
     bmf_shrink=BMF1SHRINK,
