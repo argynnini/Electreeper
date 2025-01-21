@@ -1,0 +1,5 @@
+# Ignore .micropico directory
+.micropico/
+
+# Ignore all .json files
+*.json
