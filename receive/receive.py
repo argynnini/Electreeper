@@ -3,9 +3,12 @@
 import serial
 import csv
 import datetime
+import time
 
-# CSVファイルのヘッダー
-csv_header = ['time', 'Target', 'Resistance', 'PWM', 'Time']
+# 受け取るデータの形
+# time,Target,Resistance,PWM,Time
+# CSVファイルのヘッダー 一番左はPCの時間
+csv_header = ['pc_time', 'time', 'Target', 'Resistance', 'PWM', 'Time']
 # ファイル名の例2021-09-01_15.00.00
 csv_file = datetime.datetime.now().strftime('%Y-%m-%d_%H.%M.%S') + '.csv'
 # 除外する文字列
@@ -22,10 +25,12 @@ try:
         writer = csv.writer(f, delimiter=',')
         writer.writerow(csv_header)
         print (csv_header)
+        start_time = time.perf_counter() # プログラム開始時刻
         while True:
             line = ser.readline().decode('utf-8').strip()
             if line and not any(ignore in line for ignore in ignore_str):
-                print(line)
-                writer.writerow(line.split(','))
+                get_time = time.perf_counter()-start_time
+                print([get_time] + line.split(','))
+                writer.writerow([get_time] + line.split(','))
 except KeyboardInterrupt:
     print('File saved as ' + csv_file)
