@@ -1,5 +1,8 @@
-# Ignore .micropico directory
-.micropico/
+# Ignore .vscode folder
+.vscode/
 
-# Ignore all .json files
+# Ignore .micropico file
+*.micropico
+
+# Ignore all .json file
 *.json
