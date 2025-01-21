@@ -6,7 +6,8 @@ import datetime
 import time
 
 # 受け取るデータの形
-# time,Target,Resistance,PWM,Time
+# serial.println(value1 + ',' + value2 + ',' + value3 + ',' + value4 + ',' + value5 + ',' + value6);
+# 10,100,22,33.456,231\n
 # CSVファイルのヘッダー 一番左はPCの時間
 csv_header = ['pc_time', 'time', 'Target', 'Resistance', 'PWM', 'Time']
 # ファイル名の例2021-09-01_15.00.00
