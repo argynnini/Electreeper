@@ -28,14 +28,14 @@ ADC1 = 29  # ADC1
 CCRD = 0.010  # CRD current: 10mA
 
 # BMF setting
-BMFTHRESHOLD = 30.0  # BMF threshold: 0 Ohm
-BMF1RELAX = 24.00  # BMF relax: 0 Ohm
-BMF1SHRINK = 19.20  # BMF shrink: 0 Ohm
+BMFTHRESHOLD = 29.0  # BMF threshold: 0 Ohm
+BMF1RELAX = 28.28  # BMF relax: 0 Ohm
+BMF1SHRINK = 22.00  # BMF shrink: 0 Ohm
 
 # OpAmp setting
 VREF = 3.3  # Vref: 3.3V
-GAIN0 = 11.346100  # Gain: 0
-GAIN1 = 10.752688  # Gain: 1
+GAIN0 = 11.20  # Gain: 0 11.346100
+GAIN1 = 9.37  # Gain: 1  10.752688
 
 # PID setting
 KP = 70  # Proportional gain
@@ -279,16 +279,17 @@ def core1(cta):
 
 
 # ---- Main ----
+initial_time = ticks_ms()
 change_color(WHITE)
 sleep(3)
 log_electreeper.info("Start")
 led_green.value(False)  # LED red on
 change_color(GREEN)
-# Initialize CTA0
+# Initialize CTA1
 cta1 = CTA(
-    pwm_pin=PWM1,
-    adc_pin=ADC1,
-    adc_gain=GAIN1,
+    pwm_pin=PWM0,
+    adc_pin=ADC0,
+    adc_gain=GAIN0,
     crd_current=CCRD,
     bmf_relax=BMF1RELAX,
     bmf_shrink=BMF1SHRINK,
@@ -296,10 +297,21 @@ cta1 = CTA(
 cta1.init_pwm(freq=PWMFREQ, pwm_duty_min=PWMMIN, pwm_duty_max=PWMMAX)  # Initialize PWM
 cta1.init_pid(p=KP, i=KI, d=KD)  # Initialize PID
 sleep(1)
-_thread.start_new_thread(core1, (cta1,))  # Start core0
-core0(cta1)  # Start core1
-# cta1.control(pwm=PWMMAX, resistance=BMF1SHRINK, threshold=0.1, timeout=100)
-# cta1.control(pwm=PWMMIN, resistance=BMF1RELAX, threshold=0.3, timeout=100)
+# check resistance
+cta1.set_pwm_duty(90)
+sleep(3)
+test_sum = 0
+test_count = 0
+while test_count < 10000:
+    temp = cta1.get_adc_resistance()
+    if(temp < 29):
+        test_sum += temp
+        test_count += 1
+        print(f"{test_count},{temp}")
+print(GAIN1, test_sum / test_count)
+# Start thread
+# _thread.start_new_thread(core1, (cta1,))  # Start core0
+# core0(cta1)  # Start core1
 
 # End
 sleep(0.25)
