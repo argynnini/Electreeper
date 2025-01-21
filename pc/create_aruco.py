@@ -25,4 +25,4 @@ for marker in marker_id:
     # border_size = 10  # size of the border
     # img_with_border = cv2.copyMakeBorder(img, border_size, border_size, border_size, border_size, cv2.BORDER_CONSTANT, value=0)
 
-    cv2.imwrite(f"marker_{marker}.png", img)
+    cv2.imwrite(f"pc/aruco_marker/marker_{marker}.png", img)
