@@ -17,13 +17,15 @@ baudrate = 115200
 ser = serial.Serial(device, baudrate)
 
 # CSVファイルの作成
-with open(csv_file, 'w', newline='') as f:
-    writer = csv.writer(f, delimiter=',')
-    writer.writerow(csv_header)
-    print (csv_header)
-    while True:
-        line = ser.readline().decode('utf-8').strip()
-        if line and not any(ignore in line for ignore in ignore_str):
-            print(line)
-            writer.writerow(line.split(','))
-print('File saved as ' + csv_file)
+try:
+    with open(csv_file, 'w', newline='') as f:
+        writer = csv.writer(f, delimiter=',')
+        writer.writerow(csv_header)
+        print (csv_header)
+        while True:
+            line = ser.readline().decode('utf-8').strip()
+            if line and not any(ignore in line for ignore in ignore_str):
+                print(line)
+                writer.writerow(line.split(','))
+except KeyboardInterrupt:
+    print('File saved as ' + csv_file)
