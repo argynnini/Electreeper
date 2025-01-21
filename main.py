@@ -29,7 +29,7 @@ CCRD = 0.010  # CRD current: 10mA
 
 # BMF setting
 BMFTHRESHOLD = 29.0  # BMF threshold: 0 Ohm
-BMF1RELAX = 28.28  # BMF relax: 0 Ohm
+BMF1RELAX = 27.10  # BMF relax: 0 Ohm
 BMF1SHRINK = 22.00  # BMF shrink: 0 Ohm
 
 # OpAmp setting
