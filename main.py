@@ -279,7 +279,6 @@ def core1(cta):
 
 
 # ---- Main ----
-initial_time = ticks_ms()
 change_color(WHITE)
 sleep(3)
 log_electreeper.info("Start")
@@ -298,20 +297,21 @@ cta1.init_pwm(freq=PWMFREQ, pwm_duty_min=PWMMIN, pwm_duty_max=PWMMAX)  # Initial
 cta1.init_pid(p=KP, i=KI, d=KD)  # Initialize PID
 sleep(1)
 # check resistance
-cta1.set_pwm_duty(90)
-sleep(3)
-test_sum = 0
-test_count = 0
-while test_count < 10000:
-    temp = cta1.get_adc_resistance()
-    if(temp < 29):
-        test_sum += temp
-        test_count += 1
-        print(f"{test_count},{temp}")
-print(GAIN1, test_sum / test_count)
+# initial_time = ticks_ms()
+# cta1.set_pwm_duty(90)
+# sleep(3)
+# test_sum = 0
+# test_count = 0
+# while test_count < 10000:
+#     temp = cta1.get_adc_resistance()
+#     if(temp < 29):
+#         test_sum += temp
+#         test_count += 1
+#         print(f"{test_count},{temp}")
+# print(GAIN1, test_sum / test_count)
 # Start thread
-# _thread.start_new_thread(core1, (cta1,))  # Start core0
-# core0(cta1)  # Start core1
+_thread.start_new_thread(core1, (cta1,))  # Start core0
+core0(cta1)  # Start core1
 
 # End
 sleep(0.25)
