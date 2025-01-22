@@ -11,7 +11,7 @@ import time
 # CSVファイルのヘッダー 一番左はPCの時間
 csv_header = ['pc_time', 'time', 'Target', 'Resistance', 'PWM', 'Time']
 # ファイル名の例2021-09-01_15.00.00
-csv_file = datetime.datetime.now().strftime('%Y-%m-%d_%H.%M.%S') + '.csv'
+csv_file = 'serial_' + datetime.datetime.now().strftime('%Y-%m-%d_%H.%M.%S') + '.csv'
 # 除外する文字列
 ignore_str = ['INFO', 'WARNING', 'ERROR']
 
