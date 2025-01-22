@@ -16,7 +16,7 @@ csv_file = 'serial_' + datetime.datetime.now().strftime('%Y-%m-%d_%H.%M.%S') + '
 ignore_str = ['INFO', 'WARNING', 'ERROR']
 
 # シリアル通信の設定
-device = '/dev/ttyACM0'
+device = '/dev/ttyACM1'
 baudrate = 115200
 ser = serial.Serial(device, baudrate)
 

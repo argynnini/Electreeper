@@ -7,21 +7,24 @@ import subprocess
 import csv
 import datetime
 import time
+import os
+
+os.makedirs("./trajectory", exist_ok=True)
 
 
 # CSVファイルのヘッダー 一番左はPCの時間
 csv_header = [
     "pc_time",
-    "ul0_x",
-    "ul0_y",
-    "ur0_x",
-    "ur0_y",
-    "dl0_x",
-    "dl0_y",
-    "dr0_x",
-    "dr0_y",
-    "c0_x",
-    "c0_y",
+    # "ul0_x",
+    # "ul0_y",
+    # "ur0_x",
+    # "ur0_y",
+    # "dl0_x",
+    # "dl0_y",
+    # "dr0_x",
+    # "dr0_y",
+    # "c0_x",
+    # "c0_y",
     "ul1_x",
     "ul1_y",
     "ur1_x",
@@ -41,17 +44,17 @@ csv_header = [
     "dr2_x",
     "dr2_y",
     "c2_x",
-    "c2_y",
-    "ul3_x",
-    "ul3_y",
-    "ur3_x",
-    "ur3_y",
-    "dl3_x",
-    "dl3_y",
-    "dr3_x",
-    "dr3_y",
-    "c3_x",
-    "c3_y",
+    "c2_y"# ,
+    # "ul3_x",
+    # "ul3_y",
+    # "ur3_x",
+    # "ur3_y",
+    # "dl3_x",
+    # "dl3_y",
+    # "dr3_x",
+    # "dr3_y",
+    # "c3_x",
+    # "c3_y",
 ]
 # ファイル名の例2021-09-01_15.00.00
 csv_file = "aruco_" + datetime.datetime.now().strftime("%Y-%m-%d_%H.%M.%S") + ".csv"
@@ -76,7 +79,7 @@ aruco_dict = aruco.getPredefinedDictionary(aruco.DICT_4X4_50)
 _, _ = cap.read()  # <-対策としてこの1行を追加
 
 # v4l2の設定をsubprocessを用いて実行
-cmd = "v4l2-ctl -d /dev/video2 -c auto_exposure=1 -c exposure_time_absolute=75"
+cmd = "v4l2-ctl -d /dev/video2 -c auto_exposure=1 -c exposure_time_absolute=30"
 ret = subprocess.check_output(cmd, shell=True)
 
 # v4l2の設定値を確認
@@ -84,7 +87,7 @@ cmd = "v4l2-ctl --list-ctrls"
 ret = subprocess.check_output(cmd, shell=True)
 print(ret)
 
-
+framenum = 0
 with open(csv_file, "w", newline="") as f:
     writer = csv.writer(f, delimiter=",")
     writer.writerow(csv_header)
@@ -92,6 +95,9 @@ with open(csv_file, "w", newline="") as f:
 
     # 軌跡用画像の初期化
     marker_trajectory = np.zeros((720, 1280, 3), np.uint8)
+    
+    # カーネルの設定
+    kernel = np.ones((5, 5), np.uint8)
 
     start_time = time.perf_counter()
     while True:
@@ -104,13 +110,13 @@ with open(csv_file, "w", newline="") as f:
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
         # クロージング処理
-        kernel = np.ones((5, 5), np.uint8)
         gray = cv2.morphologyEx(gray, cv2.MORPH_CLOSE, kernel)
         # オープニング処理
         gray = cv2.morphologyEx(gray, cv2.MORPH_OPEN, kernel)
 
         # Arucoマーカを検出
         corners, ids, rejectedImgPoints = aruco.detectMarkers(gray, aruco_dict)
+        print(ids)
 
         # マーカの中心座標を描画
         if ids is not None:
@@ -127,12 +133,16 @@ with open(csv_file, "w", newline="") as f:
                 csv_data.append(c[j][1])
             csv_data.append(x)
             csv_data.append(y)
-            print(csv_data, end="\r")
+            # print(csv_data, end="\r")
             writer.writerow(csv_data)
         else:
             print("\nMarker ga naiyo!")
         # 画像を表示
         cv2.imshow("marker trajectory", frame)
+        
+        #画像を保存
+        #cv2.imwrite("./trajectory/electreeper" + str(framenum) + ".png", frame)
+        #framenum += 1
 
         # キー入力を取得
         key = cv2.waitKey(1)

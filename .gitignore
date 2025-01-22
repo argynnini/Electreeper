@@ -7,3 +7,4 @@
 .*lock.*
 # Ignore all .json file
 *.json
+*.png
