@@ -42,6 +42,10 @@ KP = 70  # Proportional gain
 KI = 0  # Integral gain
 KD = 0.0  # Derivative gain
 
+# Feedback setting
+TIMEOUT_FLEX = 1
+TIMEOUT_RELAX = 4
+
 # UART setting
 uart = UART(0, baudrate=115200)
 
@@ -264,11 +268,13 @@ def core1(cta):
         print("\n", end="\r")
         log_cta1.info("shrink")
         change_color(RED)
-        cta.control(pwm=PWMMAX, resistance=BMF1SHRINK, threshold=0.15, timeout=5)
+        # flex
+        cta.control(pwm=PWMMAX, resistance=BMF1SHRINK, threshold=0.15, timeout=TIMEOUT_FLEX)
         print("\n", end="\r")
         log_cta1.info("relax")
         change_color(BLUE)
-        cta.control(pwm=PWMMIN, resistance=BMF1RELAX, threshold=0.3, timeout=5)
+        # relax
+        cta.control(pwm=PWMMIN, resistance=BMF1RELAX, threshold=0.3, timeout=TIMEOUT_RELAX)
     # except KeyboardInterrupt:
     #     cta.end_pwm()
     #     print("\n", end="\r")
