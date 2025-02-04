@@ -1,12 +1,9 @@
 # -*- coding: utf-8 -*-
 from ws2812 import WS2812
-from PID import PID as simplePID
 from machine import Pin, ADC, PWM, UART
-import logging
 from utime import sleep
 from time import ticks_ms
 import _thread
-
 
 # ---- Setting ----
 # Thread setting
@@ -16,7 +13,7 @@ cta1_resistance = 0
 # PWM setting
 PWM0 = 26  # PWM0
 PWM1 = 27  # PWM1
-PWMMAX = 90  # PWM max: 90%
+PWMMAX = 55  # PWM max: 60% = 3V
 PWMMIN = 0  # PWM min: 0%
 PWMFREQ = 500  # PWM frequency: 500Hz
 
@@ -28,22 +25,19 @@ ADC1 = 29  # ADC1
 CCRD = 0.010  # CRD current: 10mA
 
 # BMF setting
-BMFTHRESHOLD = 29.0  # BMF threshold: 0 Ohm
-BMF1RELAX = 27.10  # BMF relax: 0 Ohm
-BMF1SHRINK = 22.00  # BMF shrink: 0 Ohm
+BMFTHRESHOLD = 15.0  # BMF threshold: 15 Ohm
+BMF0RELAX = None  # BMF relax: 13.5 Ohm
+BMF0SHRINK = 11.24  # BMF shrink: 11.24 Ohm
+BMF1RELAX = None  # BMF relax: 13.5 Ohm
+BMF1SHRINK = 11.11  # BMF shrink: 11.11 Ohm
 
 # OpAmp setting
 VREF = 3.3  # Vref: 3.3V
 GAIN0 = 11.20  # Gain: 0 11.346100
 GAIN1 = 9.37  # Gain: 1  10.752688
 
-# PID setting
-KP = 70  # Proportional gain
-KI = 0  # Integral gain
-KD = 0.0  # Derivative gain
-
 # Feedback setting
-TIMEOUT_FLEX = 1
+TIMEOUT_SHRINK = 1
 TIMEOUT_RELAX = 4
 
 # UART setting
@@ -70,22 +64,12 @@ neoPixel = Pin(11, Pin.OUT)
 neoPixel.value(1)
 led = WS2812(12, 1)  # WS2812(pin_num,led_count)
 
-# Logging setting
-logging.basicConfig(level=logging.DEBUG)
-log_electreeper = logging.getLogger("Electreeper")
-log_core0 = logging.getLogger("Core0")
-log_core1 = logging.getLogger("Core1")
-log_cta0 = logging.getLogger("CTA0")
-log_cta1 = logging.getLogger("CTA1")
-
-
 # class
-class CTA:
+class CTA():
     # Initialize function
     def __init__(self, pwm_pin, adc_pin, adc_gain, crd_current, bmf_relax, bmf_shrink):
         self.__adc = ADC(adc_pin)
         self.__pwm = PWM(Pin(pwm_pin, Pin.OUT))
-        self.__pid = simplePID()
         self.__gain = adc_gain
         self.__ccrd = crd_current
         self.__relax = bmf_relax
@@ -112,11 +96,10 @@ class CTA:
             if ((resistance := self.get_adc_resistance()) < threshold):
                 self.__cta_resistance = resistance
                 return self.__cta_resistance
-        # logger.error("Timeout")
 
     # ---- PWM function ----
     # Init PWM function
-    def init_pwm(self, freq=500, pwm_duty_min=0.0, pwm_duty_max=90.0):
+    def init_pwm(self, freq=500, pwm_duty_min=0.0, pwm_duty_max=0.0):
         self.__pwm.freq(freq)
         self.set_pwm_duty(0)
         self.__pwm_duty_min = pwm_duty_min
@@ -126,10 +109,8 @@ class CTA:
     def set_pwm_duty(self, percentage=0.0):
         if percentage > self.__pwm_duty_max:
             percentage = self.__pwm_duty_max
-            # logger.warning("PWM duty is over " + str(self.__pwm_duty_max) + " %")
         elif percentage < self.__pwm_duty_min:
             percentage = self.__pwm_duty_min
-            # logger.warning("PWM duty is under " + str(self.__pwm_duty_min) + " %")
         self.__pwm.duty_u16(int(percentage * 65535 / 100))
 
     # Get PWM function
@@ -140,99 +121,45 @@ class CTA:
     def end_pwm(self):
         self.set_pwm_duty(0)
 
-    # ---- PID function ----
-    # Init PID function
-    def init_pid(self, p, i, d):
-        self.__pid = simplePID(-p, -i, -d, scale="ms")
-        # gain is negative because
-        # the voltage is lower,
-        # the resistance is higher
-        self.__pid.sample_time = 100  # 100ms
-        self.__pid.output_limits = (int(PWMMIN), int(PWMMAX))  # 0~90%
-        self.__pid.auto_mode = True  # Auto mode
-        self.__pid.proportional_on_measurement = False
-        # Proportional on measurement
-        # False : output=  Kp*e(t) + Ki*Σe(t) + Kd*Δe(t)
-        # proportional on error
-        # True  : output= -Kp[Input(t) - Input_init] + Ki*Σe(t) + Kd*Δe(t)
-        # proportional on measurement
-
-    # Set PID gain function
-    def set_pid_gain(self, p, i, d):
-        self.__pid.tunings = (p, i, d)
-
-    # Set PID setpoint function
-    def set_pid_setpoint(self, setpoint):
-        self.__pid.setpoint = setpoint
-
-    # Get PID gain function
-    def get_pid_gain(self):
-        return self.__pid.tunings
-
-    # Get PID output function
-    def get_pid_output(self):
-        return self.__pid.components
-
-    # End PID function
-    def end_pid(self):
-        self.__pid.auto_mode = False
-        self.set_pid_gain(0, 0, 0)
-        self.set_pid_setpoint(0)
-
     # ---- Control function ----
+    def shrink(self, threshold=0.2, timeout=10.0):
+        self.control(self.__shrink, self.__pwm_duty_max, threshold, timeout)
+    
+    def relax(self, threshold=0.2, timeout=10.0):
+        self.control(self.__relax, self.__pwm_duty_min, threshold, timeout)
+    
     # Control CTA on/off function
     def control(self, resistance, pwm, threshold=0.2, timeout=10.0):
         global initial_time
         if resistance > self.__relax:
             resistance = self.__relax
-            # logger.warning("Resistance is over " + str(self.__relax) + " Ohm")
         elif resistance < self.__shrink:
             resistance = self.__shrink
-            # logger.warning("Resistance is under " + str(self.__shrink) + " Ohm")
         # set PID setpoint
         self.set_pwm_duty(pwm)
         start_time = ticks_ms()
+        self.__cta_resistance = self.get_bmf_resistance()
         while ticks_ms() - start_time < (timeout * 1000) and not (
             (resistance - threshold) < self.__cta_resistance < (resistance + threshold)
         ):
             # get BMF resistance
-            # cta_resistance = self.get_bmf_resistance()
+            self.__cta_resistance = self.get_bmf_resistance()
             print(f"{ticks_ms() - initial_time},{resistance},{self.__cta_resistance},{pwm},{(ticks_ms() - start_time) / 1000}")
-            # print(
-            #     "Control: {:3d}, Resistance: {:2.3f}, Setpoint: {:2.2f}, PWM: {:3d}, Time: {:2.3f}".format(
-            #         pwm, self.__cta_resistance, resistance, pwm, ((ticks_ms() - start_time) / 1000)
-            #     ),
-            #     end="\r",
-            # )
-
-    # control CTA pid function
-    def control_pid(self, resistance, threshold=0.2, timeout=10.0):
-        if resistance > self.__relax:
-            resistance = self.__relax
-            # logger.warning("Resistance is over " + str(self.__relax) + " Ohm")
-        elif resistance < self.__shrink:
-            resistance = self.__shrink
-            # logger.warning("Resistance is under " + str(self.__shrink) + " Ohm")
-        # set PID setpoint
-        self.set_pid_setpoint(resistance)
-        cta_resistance = 0
-        start_time = ticks_ms()  # start time
-        while (ticks_ms() - start_time < (timeout * 1000)) and not (
-            (resistance - threshold) < cta_resistance < (resistance + threshold)
-        ):
-            # get BMF resistance
-            cta_resistance = self.get_bmf_resistance()
-            # set PID control
-            if (cta_control := self.__pid(cta_resistance)) is None:
-                cta_control = 0
-            self.set_pwm_duty(cta_control)
-            p, i, d = self.get_pid_output()
-            print(
-                "Control: {:2.3f}, Resistance: {:2.3f}, Setpoint: {:2.3f}, PID: {:3.3f}, {:3.3f}, {:3.3f}".format(
-                    cta_control, cta_resistance, resistance, p, i, d
-                ),
-                end="\r",
-            )
+            
+    def check_resistance(self, duty = 0, count=1000):
+        ### --Check resistance-- ###
+        initial_time = ticks_ms()
+        self.set_pwm_duty(duty)
+        test_sum = 0
+        test_count = 0
+        while test_count < count:
+            temp = self.get_adc_resistance()
+            if(temp < 29):
+                test_sum += temp
+                test_count += 1
+                print(f"{test_count},{temp}")
+        print(GAIN1, test_sum / test_count)
+        return test_sum / test_count
 
 
 # ---- Function ----
@@ -241,56 +168,58 @@ def change_color(color=(0, 0, 0)):
     led.pixels_fill(color)
     led.pixels_show()
 
-
-# core0 function (read resistance)
-def core0(cta):
+# core0 function (get cta resistance)
+def core1(cta_left, cta_right):
     led_red.value(False)  # LED red on
-    print("\n", end="\r")
-    log_core0.info("Start read resistance")
-    try:
-        while True:
-            cta.get_bmf_resistance()
-    except KeyboardInterrupt:
-        print("\n", end="\r")
-        log_core0.info("End read resistance")
-        led_red.value(True)  # LED red off
-
-
-# core1 function (pwm control)
-def core1(cta):
-    led_blue.value(False)  # LED blue on
-    log_core1.info("Start PWM control")
-    cta.init_pwm(freq=PWMFREQ, pwm_duty_min=PWMMIN, pwm_duty_max=PWMMAX)
     global initial_time
     initial_time = ticks_ms()
+    try:
+        while True:
+            cta_left.get_bmf_resistance()
+            cta_right.get_bmf_resistance()
+    except KeyboardInterrupt:
+        led_red.value(True)  # LED red off
+        _thread.exit()
+
+# core function (pwm control)
+def core0(cta_left, cta_right):
+    led_blue.value(False)  # LED blue on
+    global initial_time
+    cta_left.init_pwm(freq=PWMFREQ, pwm_duty_min=PWMMIN, pwm_duty_max=PWMMAX)
+    cta_right.init_pwm(freq=PWMFREQ, pwm_duty_min=PWMMIN, pwm_duty_max=PWMMAX)
     # try:
     while True:
         print("\n", end="\r")
-        log_cta1.info("shrink")
         change_color(RED)
         # flex
-        cta.control(pwm=PWMMAX, resistance=BMF1SHRINK, threshold=0.15, timeout=TIMEOUT_FLEX)
-        print("\n", end="\r")
-        log_cta1.info("relax")
+        cta_left.set_pwm_duty(PWMMAX)
+        cta_right.set_pwm_duty(PWMMAX)
+        initial_time = ticks_ms()
+        while ((ticks_ms() - initial_time) < TIMEOUT_SHRINK * 1000) and not(
+            (cta_left.__cta_resistance < (BMF0SHRINK + 0.15)) and (cta_right.__cta_resistance < (BMF1SHRINK + 0.15))
+        ):
+            print(f"{ticks_ms() - initial_time},{cta_left.get_bmf_resistance()},{cta_right.get_bmf_resistance()}")
         change_color(BLUE)
         # relax
-        cta.control(pwm=PWMMIN, resistance=BMF1RELAX, threshold=0.3, timeout=TIMEOUT_RELAX)
-    # except KeyboardInterrupt:
-    #     cta.end_pwm()
-    #     print("\n", end="\r")
-    #     log_core1.info("End PWM control")
-    #     led_blue.value(True)  # LED blue off
-    #     _thread.exit()
-
-
+        initial_time = ticks_ms()
+        cta_left.set_pwm_duty(PWMMIN)
+        cta_right.set_pwm_duty(PWMMIN)
+        while ((ticks_ms() - initial_time) < TIMEOUT_RELAX * 1000) and not(
+            (cta_left.__cta_resistance > (BMF0RELAX - 0.35)) and (cta_right.__cta_resistance > (BMF1RELAX - 0.35))
+        ):
+            print(f"{ticks_ms() - initial_time},{cta_left.get_bmf_resistance()},{cta_right.get_bmf_resistance()}")
 
 # ---- Main ----
 change_color(WHITE)
-sleep(3)
-log_electreeper.info("Start")
-led_green.value(False)  # LED red on
-change_color(GREEN)
 # Initialize CTA1
+cta0 = CTA(
+    pwm_pin=PWM0,
+    adc_pin=ADC0,
+    adc_gain=GAIN0,
+    crd_current=CCRD,
+    bmf_relax=BMF0RELAX,
+    bmf_shrink=BMF0SHRINK,
+)
 cta1 = CTA(
     pwm_pin=PWM1,
     adc_pin=ADC1,
@@ -299,33 +228,29 @@ cta1 = CTA(
     bmf_relax=BMF1RELAX,
     bmf_shrink=BMF1SHRINK,
 )
+cta0.init_pwm(freq=PWMFREQ, pwm_duty_min=PWMMIN, pwm_duty_max=PWMMAX)  # Initialize PWM
 cta1.init_pwm(freq=PWMFREQ, pwm_duty_min=PWMMIN, pwm_duty_max=PWMMAX)  # Initialize PWM
-cta1.init_pid(p=KP, i=KI, d=KD)  # Initialize PID
 sleep(1)
-# check resistance
-# initial_time = ticks_ms()
-# cta1.set_pwm_duty(90)
-# sleep(3)
-# test_sum = 0
-# test_count = 0
-# while test_count < 10000:
-#     temp = cta1.get_adc_resistance()
-#     if(temp < 29):
-#         test_sum += temp
-#         test_count += 1
-#         print(f"{test_count},{temp}")
-# print(GAIN1, test_sum / test_count)
-# Start thread
-_thread.start_new_thread(core1, (cta1,))  # Start core0
-core0(cta1)  # Start core1
+if BMF0RELAX is None:
+    BMF0RELAX = cta0.check_resistance(duty=0, count=1000)
+if BMF1RELAX is None:
+    BMF1RELAX = cta1.check_resistance(duty=0, count=1000)
+sleep(1)
+led_green.value(False)  # LED red on
+change_color(GREEN)
+### --Check resistance-- ###
+# cta0.check_resistance(duty=0, count=10000)
+### --Start thread-- ###
+_thread.start_new_thread(core1, (cta0, cta1,))  # Start core1
+core0(cta0, cta1)  # Start core0
 
 # End
 sleep(0.25)
-cta1.end_pid()
+cta0.set_pwm_duty(0)
+cta1.set_pwm_duty(0)
+cta0.end_pwm()
 cta1.end_pwm()
 # change_color(BLACK)
 led_red.value(True)
 led_green.value(True)
 led_blue.value(True)
-print("\n", end="\r")
-log_electreeper.info("End")
