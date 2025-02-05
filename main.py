@@ -25,7 +25,7 @@ cta1_resistance = 0
 # PWM setting
 PWM0 = 26  # PWM0
 PWM1 = 27  # PWM1
-PWMMAX = 55  # PWM max: 60% = 3V
+PWMMAX = 55  # PWM max: 55% = 3.7 / 100 * 55 = 2.035V
 PWMMIN = 0  # PWM min: 0%
 PWMFREQ = 500  # PWM frequency: 500Hz
 
@@ -42,8 +42,8 @@ BMF0RELAX = 13.5  # BMF relax: 13.5 Ohm
 BMF0SHRINK = 11.24  # BMF shrink: 11.24 Ohm
 BMF1RELAX = 13.5  # BMF relax: 13.5 Ohm
 BMF1SHRINK = 11.11  # BMF shrink: 11.11 Ohm
-BMFRELAXTHRESHOLD = 0.37  # BMF relax threshold: 0.2 Ohm
-BMFSHRINKTHRESHOLD = 0.25  # BMF shrink threshold: 0.2 Ohm
+BMFRELAXTHRESHOLD = 0.37  # BMF relax threshold: 0.37 Ohm
+BMFSHRINKTHRESHOLD = 0.25  # BMF shrink threshold: 0.25 Ohm
 
 # OpAmp setting
 VREF = 3.3  # Vref: 3.3V
