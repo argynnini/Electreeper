@@ -26,12 +26,12 @@ CCRD = 0.010  # CRD current: 10mA
 
 # BMF setting
 BMFTHRESHOLD = 15.0  # BMF threshold: 15 Ohm
-BMF0RELAX = 0  # BMF relax: 13.5 Ohm
+BMF0RELAX = 13.5  # BMF relax: 13.5 Ohm
 BMF0SHRINK = 11.24  # BMF shrink: 11.24 Ohm
-BMF1RELAX = 0  # BMF relax: 13.5 Ohm
+BMF1RELAX = 13.5  # BMF relax: 13.5 Ohm
 BMF1SHRINK = 11.11  # BMF shrink: 11.11 Ohm
 BMFRELAXTHRESHOLD = 0.37  # BMF relax threshold: 0.2 Ohm
-BMFSHRINKTHRESHOLD = 0.15  # BMF shrink threshold: 0.2 Ohm
+BMFSHRINKTHRESHOLD = 0.25  # BMF shrink threshold: 0.2 Ohm
 
 # OpAmp setting
 VREF = 3.3  # Vref: 3.3V
@@ -208,10 +208,12 @@ cta0.init_pwm(freq=PWMFREQ, pwm_duty_min=PWMMIN, pwm_duty_max=PWMMAX)  # Initial
 cta1.init_pwm(freq=PWMFREQ, pwm_duty_min=PWMMIN, pwm_duty_max=PWMMAX)  # Initialize PWM
 sleep(1)
 # check BMF relax resistance
-if BMF0RELAX == 0:
-    BMF0RELAX = cta0.check_resistance(duty=0, count=1000)
-if BMF1RELAX == 0:
-    BMF1RELAX = cta1.check_resistance(duty=0, count=1000)
+if ((bmf0_relax := cta0.check_resistance(duty=0, count=1000)) > BMF0SHRINK):
+    change_color(PURPLE)
+    BMF0RELAX = bmf0_relax
+if ((bmf1_relax := cta1.check_resistance(duty=0, count=1000)) > BMF1SHRINK):
+    change_color(PURPLE)
+    BMF1RELAX = bmf1_relax
 sleep(1)
 led_green.value(False)  # LED red on
 change_color(GREEN)
