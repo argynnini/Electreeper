@@ -30,7 +30,7 @@ BMF0RELAX = 0  # BMF relax: 13.5 Ohm
 BMF0SHRINK = 11.24  # BMF shrink: 11.24 Ohm
 BMF1RELAX = 0  # BMF relax: 13.5 Ohm
 BMF1SHRINK = 11.11  # BMF shrink: 11.11 Ohm
-BMFRELAXTHRESHOLD = 0.35  # BMF relax threshold: 0.2 Ohm
+BMFRELAXTHRESHOLD = 0.37  # BMF relax threshold: 0.2 Ohm
 BMFSHRINKTHRESHOLD = 0.15  # BMF shrink threshold: 0.2 Ohm
 
 # OpAmp setting
@@ -39,8 +39,8 @@ GAIN0 = 11.20  # Gain: 0 11.346100
 GAIN1 = 9.37  # Gain: 1  10.752688
 
 # Feedback setting
-TIMEOUT_SHRINK = 1
-TIMEOUT_RELAX = 4
+TIMEOUT_SHRINK = 2.0
+TIMEOUT_RELAX = 4.0
 
 # UART setting
 uart = UART(0, baudrate=115200)
