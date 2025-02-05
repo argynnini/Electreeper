@@ -4,6 +4,7 @@ from machine import Pin, ADC, PWM, UART
 from utime import sleep
 from time import ticks_ms
 import _thread
+import math
 
 # ---- Setting ----
 # Thread setting
@@ -26,10 +27,12 @@ CCRD = 0.010  # CRD current: 10mA
 
 # BMF setting
 BMFTHRESHOLD = 15.0  # BMF threshold: 15 Ohm
-BMF0RELAX = None  # BMF relax: 13.5 Ohm
+BMF0RELAX = 0  # BMF relax: 13.5 Ohm
 BMF0SHRINK = 11.24  # BMF shrink: 11.24 Ohm
-BMF1RELAX = None  # BMF relax: 13.5 Ohm
+BMF1RELAX = 0  # BMF relax: 13.5 Ohm
 BMF1SHRINK = 11.11  # BMF shrink: 11.11 Ohm
+BMFRELAXTHRESHOLD = 0.35  # BMF relax threshold: 0.2 Ohm
+BMFSHRINKTHRESHOLD = 0.15  # BMF shrink threshold: 0.2 Ohm
 
 # OpAmp setting
 VREF = 3.3  # Vref: 3.3V
@@ -39,6 +42,10 @@ GAIN1 = 9.37  # Gain: 1  10.752688
 # Feedback setting
 TIMEOUT_SHRINK = 1
 TIMEOUT_RELAX = 4
+
+# LPF setting
+cut_off_freq = 10.0  # cutoff frequency
+tau = 1 / (2 * math.pi * cut_off_freq)  # time constant
 
 # UART setting
 uart = UART(0, baudrate=115200)
@@ -196,7 +203,8 @@ def core0(cta_left, cta_right):
         cta_right.set_pwm_duty(PWMMAX)
         initial_time = ticks_ms()
         while ((ticks_ms() - initial_time) < TIMEOUT_SHRINK * 1000) and not(
-            (cta_left.__cta_resistance < (BMF0SHRINK + 0.15)) and (cta_right.__cta_resistance < (BMF1SHRINK + 0.15))
+            (cta_left.__cta_resistance < (BMF0SHRINK + BMFSHRINKTHRESHOLD)) and 
+            (cta_right.__cta_resistance < (BMF1SHRINK + BMFSHRINKTHRESHOLD))
         ):
             print(f"{ticks_ms() - initial_time},{cta_left.get_bmf_resistance()},{cta_right.get_bmf_resistance()}")
         change_color(BLUE)
@@ -205,7 +213,8 @@ def core0(cta_left, cta_right):
         cta_left.set_pwm_duty(PWMMIN)
         cta_right.set_pwm_duty(PWMMIN)
         while ((ticks_ms() - initial_time) < TIMEOUT_RELAX * 1000) and not(
-            (cta_left.__cta_resistance > (BMF0RELAX - 0.35)) and (cta_right.__cta_resistance > (BMF1RELAX - 0.35))
+            (cta_left.__cta_resistance > (BMF0RELAX - BMFRELAXTHRESHOLD)) and 
+            (cta_right.__cta_resistance > (BMF1RELAX - BMFRELAXTHRESHOLD))
         ):
             print(f"{ticks_ms() - initial_time},{cta_left.get_bmf_resistance()},{cta_right.get_bmf_resistance()}")
 
@@ -231,9 +240,9 @@ cta1 = CTA(
 cta0.init_pwm(freq=PWMFREQ, pwm_duty_min=PWMMIN, pwm_duty_max=PWMMAX)  # Initialize PWM
 cta1.init_pwm(freq=PWMFREQ, pwm_duty_min=PWMMIN, pwm_duty_max=PWMMAX)  # Initialize PWM
 sleep(1)
-if BMF0RELAX is None:
+if BMF0RELAX == 0:
     BMF0RELAX = cta0.check_resistance(duty=0, count=1000)
-if BMF1RELAX is None:
+if BMF1RELAX == 0:
     BMF1RELAX = cta1.check_resistance(duty=0, count=1000)
 sleep(1)
 led_green.value(False)  # LED red on
