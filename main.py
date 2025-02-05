@@ -1,3 +1,13 @@
+#############################################
+# Project: Electreeper
+# Author: Argynnini
+# Date: 2025/02/05
+# Description: Electreeper main code
+# This code is for Electreeper which CTA is R1D2
+# And battery is 3.7V 300mAh
+# This code is for CTA control
+#############################################
+
 # -*- coding: utf-8 -*-
 from ws2812 import WS2812
 from machine import Pin, ADC, PWM, UART
@@ -208,14 +218,17 @@ cta0.init_pwm(freq=PWMFREQ, pwm_duty_min=PWMMIN, pwm_duty_max=PWMMAX)  # Initial
 cta1.init_pwm(freq=PWMFREQ, pwm_duty_min=PWMMIN, pwm_duty_max=PWMMAX)  # Initialize PWM
 sleep(1)
 # check BMF relax resistance
+# if measurement resistance < shrink threshold, set init relax resistance
 if ((bmf0_relax := cta0.check_resistance(duty=0, count=1000)) > BMF0SHRINK):
-    change_color(PURPLE)
     BMF0RELAX = bmf0_relax
+else:
+    change_color(CYAN)
 if ((bmf1_relax := cta1.check_resistance(duty=0, count=1000)) > BMF1SHRINK):
-    change_color(PURPLE)
     BMF1RELAX = bmf1_relax
+else:
+    change_color(CYAN)
 sleep(1)
-led_green.value(False)  # LED red on
+led_green.value(False)  # LED green on
 change_color(GREEN)
 ### --Start thread-- ###
 _thread.start_new_thread(core1, (cta0, cta1,))  # Start core1
