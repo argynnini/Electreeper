@@ -103,6 +103,7 @@ class CTA():
             if ((resistance := self.get_adc_resistance()) < threshold):
                 self.__cta_resistance = resistance
                 return self.__cta_resistance
+        return 0
 
     # ---- PWM function ----
     # Init PWM function
@@ -159,12 +160,8 @@ class CTA():
         self.set_pwm_duty(duty)
         test_sum = 0
         test_count = 0
-        while test_count < count:
-            temp = self.get_adc_resistance()
-            if(temp < 29):
-                test_sum += temp
-                test_count += 1
-                print(f"{test_count},{temp}")
+        while ((test_count := test_count + 1) < count):
+            test_sum += self.get_bmf_resistance()
         print(GAIN1, test_sum / test_count)
         return test_sum / test_count
 
