@@ -168,8 +168,6 @@ def core1(cta_left, cta_right):
 # core0 function (pwm control)
 def core0(cta_left, cta_right):
     led_blue.value(False)  # LED blue on
-    cta_left.init_pwm(freq=PWMFREQ, pwm_duty_min=PWMMIN, pwm_duty_max=PWMMAX)
-    cta_right.init_pwm(freq=PWMFREQ, pwm_duty_min=PWMMIN, pwm_duty_max=PWMMAX)
     # try:
     while True:
         change_color(RED)
