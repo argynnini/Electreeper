@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #############################################
 # Project: Electreeper
 # Author: Argynnini
@@ -6,9 +7,10 @@
 # This code is for Electreeper which CTA is R1D2
 # And battery is 3.7V 300mAh
 # This code is for CTA control
+# CTA0: Left BMF, CTA1: Right BMF
+# Used BMF: BMF100
 #############################################
 
-# -*- coding: utf-8 -*-
 from ws2812 import WS2812
 from machine import Pin, ADC, PWM, UART
 from utime import sleep
